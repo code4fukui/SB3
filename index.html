@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
+<title>sb3viewer</title>
+</head><body>
+<h1>sb3viewer</h1>
+<main id=main>please drop a SB3 file.</main>
+
+<script type="module">
+import { setDropFilesListener } from "https://js.sabae.cc/setDropFilesListener.js";
+import { waitFileRead } from "https://js.sabae.cc/waitFileRead.js";
+import { SB3 } from "./SB3.js";
+import { encodeData } from "https://code4fukui.github.io/dataencoder/encodeData.js";
+
+const cr = (tag, cls, parent) => {
+  const c = document.createElement(tag);
+  c.className = cls;
+  if (parent) parent.appendChild(c);
+  return c;
+};
+
+const crSVG = (bin, parent) => {
+  const xmlns = "http://www.w3.org/2000/svg";
+  const elem = document.createElementNS(xmlns, "svg");
+  elem.setAttribute("width", 1024);
+  elem.setAttribute("height", 1024);
+  if (parent) parent.appendChild(elem);
+  elem.innerHTML = new TextDecoder().decode(bin);
+  return elem;
+};
+
+setDropFilesListener(main, async (files) => {
+  try {
+    const bin = await waitFileRead(files[0].file);
+    const sb3 = new SB3(bin);
+    const targets = sb3.getTargets();
+    console.log(targets);
+
+    main.innerHTML = "";
+
+    for (const target of targets) {
+      const t = cr("div", "target", main);
+      cr("div", "name", t).textContent = target.name;
+      
+      // broadcasts
+      if (Object.entries(target.broadcasts).length) {
+        const sdiv = cr("div", "broadcasts", t);
+        cr("div", "name", sdiv).textContent = "broadcasts";
+        for (const b in target.broadcasts) {
+          const name = target.broadcasts[b];
+          cr("span", "bcast", sdiv).textContent = name;
+        }
+      }
+
+      // cosutumes
+      if (target.costumes.length) {
+        const cdiv = cr("div", "cosutumes", t);
+        cr("div", "name", cdiv).textContent = "costumes";
+        for (const costume of target.costumes) {
+          const ext = costume.md5ext.substring(costume.md5ext.lastIndexOf(".") + 1);
+          const bin = sb3.getResource(costume.md5ext);
+          if (ext == "svg") {
+            const img = crSVG(bin, cdiv);
+          } else {
+            const img = cr("img", "img", cdiv);
+            img.src = encodeData("image/" + ext, bin);
+          }
+        }
+      }
+
+      // sounds
+      if (target.sounds.length) {
+        const sdiv = cr("div", "sounds", t);
+        cr("div", "name", sdiv).textContent = "sounds";
+        for (const sound of target.sounds) {
+          const btn = cr("button", "btn", sdiv);
+          btn.textContent = "PLAY: " + sound.name;
+          btn.onclick = () => {
+            const ext = sound.md5ext.substring(sound.md5ext.lastIndexOf(".") + 1);
+            const bin = sb3.getResource(sound.md5ext);
+            const src = encodeData("sound/" + ext, bin);
+            const s = new Audio();
+            s.src = src;
+            //console.log(s);
+            s.play(); // can't play
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.log(e);
+    alert("please a drop sb3 file");
+  }
+});
+</script>
+
+<style>
+main {
+  min-height: 30vh;
+  border: 2px solid gray;
+  padding: 1em;
+  font-size: 120%;
+  background-color: #f0f0f0;
+}
+.target {
+  margin-top: 1em;
+  margin-bottom: .5em;
+  border-bottom: 1px solid black;
+}
+.target > div {
+  margin-left: 1em;
+}
+.bcast {
+  font-size: 110%;
+  margin-right: 1em;
+}
+.target .img {
+  height: 10vh;
+}
+.target svg {
+  zoom: 20%;
+}
+  
+</style>
+
+<hr>
+<a href=https://github.com/code4fukui/SB3/>src on GitHub</a>
+
+</body></html>
