@@ -34,7 +34,8 @@ setDropFilesListener(main, async (files) => {
     const targets = sb3.getTargets();
     console.log(targets);
 
-    main.innerHTML = "";
+    const nblock = sb3.getCountBlocks();
+    main.innerHTML = "total blocks: " + nblock;
 
     for (const target of targets) {
       const t = cr("div", "target", main);
